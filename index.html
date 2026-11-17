@@ -1,0 +1,605 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tag Along · APM Lab</title>
+<meta name="description" content="Should a governed tag follow every derived column, or ask a steward first? A Bayesian Beta-Binomial Monte Carlo picks the default per transform type. Unofficial concept prototype by Shriya Shekatkar.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Pinyon+Script&family=Playfair+Display:ital,wght@0,500;0,700;0,800;1,500&family=Permanent+Marker&display=swap" rel="stylesheet">
+<style>
+:root{
+  /* hero: soft pink card + plum script */
+  --pink:#f4b6d0; --pink-2:#f9d3e3; --plum:#4a1631; --plum-2:#6b2147;
+  /* cards: ochre paper + oxblood serif */
+  --ochre:#c9a24c; --ochre-2:#dcbb6c; --ochre-3:#f2e3bb; --oxblood:#5e1f16;
+  /* badges: marker black + star yellow */
+  --ink:#141210; --star:#f5b82e; --star-2:#ffd667;
+  /* sim room: specimen white + dragonfly */
+  --paper:#fbfaf6; --olive:#7f8a2e; --blue:#2f6fa8; --wing:#efe6c8; --teal:#2b6b75;
+  --text:#1f1a17; --muted:#5b524c; --bg:#fff7f2;
+  --grain:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 .22 0'/></filter><rect width='160' height='160' filter='url(%23n)'/></svg>");
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--text);font:16px/1.6 Inter,system-ui,sans-serif;overflow-x:hidden}
+body::before{content:"";position:fixed;inset:0;background:var(--grain);opacity:.55;pointer-events:none;z-index:50;mix-blend-mode:multiply}
+a{color:var(--plum-2)}
+.wrap{max-width:1120px;margin:0 auto;padding:0 16px}
+h2{font-family:"Playfair Display",serif;font-size:clamp(28px,4.4vw,44px);line-height:1.1;margin:0 0 8px;color:var(--oxblood)}
+.kicker{font:700 12px/1 Inter;letter-spacing:.22em;text-transform:uppercase;color:var(--muted);margin:0 0 10px}
+section{padding:56px 0}
+
+/* ---------- HERO (pin: pink script card) ---------- */
+.hero{padding:28px 0 40px}
+.poster{position:relative;border-radius:28px;background:
+  radial-gradient(120% 80% at 20% 0%,var(--pink-2),transparent 60%),
+  radial-gradient(circle at 1px 1px,rgba(74,22,49,.10) 1px,transparent 1.4px) 0 0/9px 9px,
+  linear-gradient(160deg,var(--pink),#eea0c2);
+  padding:clamp(28px,6vw,72px) clamp(20px,5vw,64px);overflow:hidden;box-shadow:0 30px 60px -30px rgba(74,22,49,.45)}
+.poster::after{content:"";position:absolute;inset:0;background:var(--grain);opacity:.6;mix-blend-mode:multiply;pointer-events:none}
+.script{font-family:"Pinyon Script",cursive;color:var(--plum);font-size:clamp(40px,8vw,92px);line-height:1.05;margin:0}
+.script .swash{display:inline-block}
+.hero h1{font-family:"Playfair Display",serif;font-weight:800;font-size:clamp(30px,5.4vw,62px);line-height:1.04;color:var(--plum);margin:14px 0 18px;max-width:15ch}
+.hero .launch{display:inline-flex;gap:10px;align-items:center;background:rgba(255,255,255,.62);border:1.5px solid var(--plum);border-radius:999px;padding:8px 16px;font-size:14px;color:var(--plum);font-weight:600;max-width:100%}
+.hero .launch a{color:var(--plum);word-break:break-word}
+.byline{margin-top:22px;color:var(--plum);font-weight:600}
+.byline span{display:block;font-weight:500;opacity:.9;font-size:14px;letter-spacing:.08em;text-transform:uppercase}
+.hero-art{position:absolute;right:0;top:-10px;width:min(46%,460px);opacity:.95;pointer-events:none}
+.flourish{stroke:var(--plum);stroke-width:2.2;fill:none;stroke-linecap:round;stroke-dasharray:1400;stroke-dashoffset:1400;animation:draw 3.2s ease forwards .3s}
+@keyframes draw{to{stroke-dashoffset:0}}
+.tagdrift{animation:drift 7s ease-in-out infinite}
+@keyframes drift{50%{transform:translateY(10px) rotate(3deg)}}
+.hero-inner{position:relative;z-index:2;max-width:640px}
+
+/* ---------- CARDS (pin: ochre + oxblood serif) ---------- */
+.board{columns:2 300px;column-gap:18px}
+.card{break-inside:avoid;margin:0 0 18px;background:linear-gradient(170deg,var(--ochre-2),var(--ochre));color:var(--oxblood);border-radius:18px;padding:22px 22px 18px;position:relative;box-shadow:0 14px 30px -18px rgba(94,31,22,.6)}
+.card::after{content:"";position:absolute;inset:0;border-radius:inherit;background:var(--grain);opacity:.55;mix-blend-mode:multiply;pointer-events:none}
+.card h3{font-family:"Playfair Display",serif;font-size:24px;margin:0 0 8px;line-height:1.15}
+.card .cap{font:700 11px/1 Inter;letter-spacing:.24em;text-transform:uppercase;opacity:.85;margin-bottom:12px}
+.card p,.card li{font-size:15px;color:#3b120c}
+.card ul{padding-left:18px;margin:6px 0}
+.card .pin-caption{font-size:12px;margin-top:10px;opacity:.85;font-style:italic}
+.card.light{background:var(--ochre-3)}
+table.gr{width:100%;border-collapse:collapse;font-size:14px}
+table.gr td{padding:6px 4px;border-bottom:1px dashed rgba(94,31,22,.35);vertical-align:top}
+table.gr td:last-child{text-align:right;font-weight:700;white-space:nowrap}
+.btn{font:600 14px Inter;border:2px solid var(--oxblood);background:var(--ochre-3);color:var(--oxblood);border-radius:999px;padding:9px 16px;cursor:pointer;box-shadow:0 3px 0 var(--oxblood);transition:transform .12s}
+.btn:hover{transform:translateY(-1px)}
+.btn:active{transform:translateY(2px);box-shadow:0 1px 0 var(--oxblood)}
+.btn.primary{background:var(--oxblood);color:var(--ochre-3)}
+.btn:focus-visible,input:focus-visible,button:focus-visible{outline:3px solid var(--blue);outline-offset:2px}
+
+/* ---------- SIM ROOM (pin: dragonfly specimen card) ---------- */
+.specimen{background:var(--paper);border:3px solid var(--ink);outline:1px solid var(--ink);outline-offset:-9px;padding:clamp(18px,4vw,40px);position:relative}
+.specimen .sname{font-family:"Pinyon Script",cursive;font-size:clamp(40px,7vw,70px);line-height:1;color:var(--ink);margin:0}
+.speclist{font:600 13px/1.9 Inter;letter-spacing:.06em;text-transform:uppercase;color:var(--ink)}
+.simgrid{display:grid;grid-template-columns:minmax(0,320px) minmax(0,1fr);gap:28px;margin-top:18px}
+.ctrl{margin-bottom:14px}
+.ctrl label{display:flex;justify-content:space-between;gap:8px;font:600 13px Inter;letter-spacing:.04em;text-transform:uppercase;color:var(--ink)}
+.ctrl output{font-variant-numeric:tabular-nums;color:var(--teal)}
+.ctrl small{display:block;color:var(--muted);font-size:12px;line-height:1.4;margin-top:2px}
+input[type=range]{width:100%;accent-color:var(--teal);height:28px}
+.typetable{width:100%;border-collapse:collapse;font-size:13px;margin-top:6px}
+.typetable th{font:700 11px Inter;letter-spacing:.12em;text-transform:uppercase;text-align:left;color:var(--muted);padding:6px 4px;border-bottom:2px solid var(--ink)}
+.typetable td{padding:7px 4px;border-bottom:1px solid #ddd6c8;vertical-align:middle}
+.seg{display:inline-flex;border:1.5px solid var(--ink);border-radius:999px;overflow:hidden}
+.seg button{font:600 11px Inter;border:0;background:#fff;color:var(--ink);padding:5px 8px;cursor:pointer;min-height:28px}
+.seg button[aria-pressed=true]{background:var(--ink);color:#fff}
+.pick{font-weight:700}
+.pick.auto{color:var(--teal)} .pick.suggest{color:#8a5a00} .pick.drop{color:#9b1c1c}
+canvas{width:100%;display:block;background:var(--paper)}
+.canvas-wrap{border:1.5px solid var(--ink);position:relative}
+.legend{display:flex;flex-wrap:wrap;gap:12px;font-size:12px;color:var(--muted);margin-top:8px}
+.legend i{display:inline-block;width:12px;height:12px;border-radius:50%;vertical-align:-2px;margin-right:4px}
+.tablewrap{overflow-x:auto}
+
+/* ---------- KPI BADGES (pin: marker + stars) ---------- */
+.kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:16px;margin:24px 0 8px}
+.badge{background:#fff;border:3px solid var(--ink);border-radius:20px 26px 18px 24px;padding:16px 14px 14px;position:relative;text-align:center;box-shadow:5px 6px 0 var(--ink)}
+.badge:nth-child(2){transform:rotate(-1.2deg)} .badge:nth-child(3){transform:rotate(1deg)} .badge:nth-child(4){transform:rotate(-.6deg)}
+.badge .lbl{font:700 11px/1.3 Inter;letter-spacing:.14em;text-transform:uppercase;color:var(--ink)}
+.badge .val{font-family:"Permanent Marker",cursive;font-size:clamp(26px,3.4vw,36px);line-height:1.1;color:var(--ink);margin:6px 0 2px}
+.badge .sub{font-size:12px;color:var(--muted);line-height:1.35}
+.badge svg.star{position:absolute;top:-16px;right:-12px;width:42px;height:42px}
+.badge.pass svg .core{fill:var(--star)} .badge.fail svg .core{fill:#e2463a}
+.badge .state{display:inline-block;margin-top:6px;font:700 11px Inter;letter-spacing:.12em;padding:3px 8px;border-radius:999px;border:2px solid var(--ink)}
+.badge.pass .state{background:var(--star)} .badge.fail .state{background:#ffd0cb}
+@media (prefers-reduced-motion:no-preference){.badge svg.star{animation:twinkle 2.6s ease-in-out infinite}}
+@keyframes twinkle{50%{transform:rotate(18deg) scale(1.08)}}
+
+/* ---------- MEMO ---------- */
+.memo{background:#fff;border-radius:6px;padding:clamp(20px,4vw,40px);box-shadow:0 20px 40px -26px rgba(0,0,0,.45);position:relative;border-top:10px solid var(--oxblood)}
+.memo .stamp{position:absolute;right:18px;top:18px;font-family:"Permanent Marker",cursive;font-size:20px;padding:6px 14px;border:3px solid currentColor;border-radius:10px;transform:rotate(6deg)}
+.stamp.ship{color:#1d6b3a}.stamp.cond{color:#8a5a00}.stamp.hold{color:#9b1c1c}
+.memo dl{display:grid;grid-template-columns:150px 1fr;gap:10px 18px;margin:18px 0 0}
+.memo dt{font:700 12px Inter;letter-spacing:.14em;text-transform:uppercase;color:var(--oxblood);padding-top:3px}
+.memo dd{margin:0}
+.vp{margin-top:22px;background:var(--pink-2);border-left:6px solid var(--plum);padding:14px 18px;font-family:"Playfair Display",serif;font-style:italic;font-size:19px;color:var(--plum)}
+
+/* ---------- MATH + CODE ---------- */
+.math{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:18px}
+.eq{font-family:"Playfair Display",serif;font-size:19px;background:var(--ochre-3);border-radius:10px;padding:10px 12px;color:var(--oxblood);overflow-x:auto}
+pre{background:#1d1714;color:#f6e9d2;border-radius:14px;padding:18px;overflow-x:auto;font:13px/1.55 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;margin:0}
+pre .c{color:#d4b98a}
+.codegrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px}
+.codegrid h3{font-family:"Playfair Display",serif;color:var(--oxblood);margin:0 0 8px}
+
+footer{padding:40px 0 50px;border-top:2px solid var(--ink);margin-top:30px;color:var(--muted);font-size:14px}
+footer .credits{font-size:11px;color:#6a625b;margin-top:10px;line-height:1.6}
+footer .credits a{color:#6a625b}
+
+@media (max-width:860px){
+  .simgrid{grid-template-columns:minmax(0,1fr)}
+  .kpis{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .math,.codegrid{grid-template-columns:minmax(0,1fr)}
+  .hero-art{opacity:.35;width:70%;right:-40px}
+}
+@media (max-width:480px){
+  .memo dl{grid-template-columns:1fr;gap:2px}
+  .memo dd{margin-bottom:10px}
+  .memo .stamp{position:static;display:inline-block;margin-bottom:10px}
+  #memoTitle{margin-right:0!important}
+  .kpis{gap:12px}
+}
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation:none!important;transition:none!important}
+  .flourish{stroke-dashoffset:0}
+  html{scroll-behavior:auto}
+}
+</style>
+</head>
+<body>
+
+<!-- ================= HERO ================= -->
+<header class="hero">
+  <div class="wrap">
+    <div class="poster">
+      <svg class="hero-art" viewBox="0 0 400 400" aria-hidden="true">
+        <!-- original redraw: a lineage swirl carrying a luggage-style tag -->
+        <path class="flourish" d="M30 300 C 90 180, 210 380, 250 230 S 360 90, 300 60 S 170 120, 230 190 S 380 260, 380 150"/>
+        <g class="tagdrift" style="transform-origin:300px 200px">
+          <path d="M258 160 l70 -10 l20 40 l-56 34 z" fill="#fff" stroke="#4a1631" stroke-width="3" stroke-linejoin="round"/>
+          <circle cx="274" cy="171" r="6" fill="none" stroke="#4a1631" stroke-width="3"/>
+          <text x="292" y="197" font-family="Permanent Marker" font-size="20" fill="#4a1631" transform="rotate(-14 300 190)">pii</text>
+        </g>
+        <g fill="#4a1631"><circle cx="30" cy="300" r="7"/><circle cx="250" cy="230" r="6"/><circle cx="380" cy="150" r="7"/></g>
+      </svg>
+      <div class="hero-inner">
+        <p class="script">every column knows its name</p>
+        <h1>I let sensitivity travel with the data, and I ask only when it matters.</h1>
+        <div class="launch">Mirrors: <a href="https://docs.databricks.com/aws/en/release-notes/product/2026/november" target="_blank" rel="noopener">Governed tag propagation now supports classic compute (Beta), Nov 16 2026</a></div>
+        <p class="byline">Shriya Shekatkar <span>UCLA · Stats 102C Monte Carlo Methods</span></p>
+      </div>
+    </div>
+  </div>
+</header>
+
+<main>
+<!-- ================= DECISION ================= -->
+<section id="decision">
+  <div class="wrap">
+    <p class="kicker">01 · The decision</p>
+    <h2>Should every derived column inherit its source's tag?</h2>
+    <p style="max-width:70ch;color:var(--muted)">Tag propagation copies governed tags (like <em>pii</em>) from a source column to the matching derived column. Now that it runs on classic compute too, far more derived tables are in scope. But not every transform keeps data sensitive: a <code>SUM()</code> of salaries or a salted hash usually isn't the raw value. Imagine I'm the PM deciding the default per transform type.</p>
+    <div class="board" style="margin-top:22px">
+      <article class="card">
+        <div class="cap">Customer problem</div>
+        <h3>"My masks spread to columns that aren't sensitive anymore."</h3>
+        <p>Governance admins want zero untagged PII downstream. Analysts get blocked when a column mask follows a monthly aggregate that no longer identifies anyone. Both sides file tickets; stewards drown in both.</p>
+        <p class="pin-caption">pinned to: governance · analyst friction</p>
+      </article>
+      <article class="card light">
+        <div class="cap">Proposed change</div>
+        <h3>Transform-aware propagation</h3>
+        <ul>
+          <li><b>Auto</b>: copy the tag (today's behavior).</li>
+          <li><b>Suggest</b>: copy as a pending tag (still enforced); a steward confirms or clears it.</li>
+          <li><b>Drop</b>: don't carry the tag; record the lineage only.</li>
+        </ul>
+        <p>Pick one default per transform type from a Bayesian read of a steward audit.</p>
+      </article>
+      <article class="card">
+        <div class="cap">Success metric</div>
+        <h3>Expected harm per derived column ↓</h3>
+        <p>Harm units: 1 = one wrongly masked column (an analyst unblock ticket). A missed sensitive column costs <i>c</i><sub>leak</sub> units (slider). Each steward review costs 0.15.</p>
+      </article>
+      <article class="card light">
+        <div class="cap">Guardrails</div>
+        <table class="gr">
+          <tr><td>Sensitive derived columns left untagged</td><td>≤ 0.5%</td></tr>
+          <tr><td>Derived columns wrongly masked</td><td>≤ 12%</td></tr>
+          <tr><td>Steward review queue</td><td>≤ 250 / week</td></tr>
+          <tr><td>P(untagged guardrail holds)</td><td>≥ 90%</td></tr>
+        </table>
+      </article>
+      <article class="card light">
+        <div class="cap">Stakeholders</div>
+        <ul>
+          <li>Governance admins &amp; data stewards (own tags, review queue)</li>
+          <li>Analysts &amp; data scientists (feel over-masking)</li>
+          <li>Security / compliance (own the leak guardrail)</li>
+          <li>Lineage + classic runtime engineering (coverage on DBR 19+)</li>
+        </ul>
+      </article>
+    </div>
+  </div>
+</section>
+
+<!-- ================= SIMULATION ================= -->
+<section id="sim">
+  <div class="wrap">
+    <p class="kicker">02 · Live simulation room</p>
+    <div class="specimen">
+      <p class="sname">tag along</p>
+      <p style="margin:6px 0 0;color:var(--muted);max-width:70ch">Each lane is a transform type. A steward audit checked <b>n</b> derived columns per type and recorded whether the column was still truly sensitive. A Beta prior plus that Binomial audit gives a Beta posterior for θ, the chance a tagged source stays sensitive after the transform. Every dot is one posterior draw of θ.</p>
+      <div class="simgrid">
+        <div>
+          <div class="ctrl"><label for="n">Audit size per type <output id="nOut"></output></label><input id="n" type="range" min="5" max="200" step="5" value="40"><small>Columns a steward hand-checked per transform type.</small></div>
+          <div class="ctrl"><label for="pm">Prior mean θ <output id="pmOut"></output></label><input id="pm" type="range" min="0.3" max="0.95" step="0.05" value="0.7"><small>From past governance reviews: most derived columns stay sensitive.</small></div>
+          <div class="ctrl"><label for="ps">Prior strength <output id="psOut"></output></label><input id="ps" type="range" min="0" max="60" step="2" value="6"><small>Pseudo-columns the prior is worth. 0 = flat-ish (Beta(1,1)).</small></div>
+          <div class="ctrl"><label for="cl">Cost of one missed sensitive column <output id="clOut"></output></label><input id="cl" type="range" min="2" max="60" step="1" value="20"><small>In wrongly-masked-column units. Security wants this high.</small></div>
+          <div class="ctrl"><label for="lc">Lineage capture on classic compute <output id="lcOut"></output></label><input id="lc" type="range" min="0.990" max="1" step="0.001" value="0.999"><small>If lineage misses a write, no tag (or suggestion) is ever made.</small></div>
+          <div class="ctrl"><label for="vol">Derived columns from tagged sources / month <output id="volOut"></output></label><input id="vol" type="range" min="2000" max="40000" step="1000" value="12000"></div>
+          <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:8px">
+            <button class="btn primary" id="rerun">Re-run audit (new seed)</button>
+            <button class="btn" id="reset">Reset</button>
+          </div>
+          <p style="font-size:12px;color:var(--muted);margin-top:8px">Seed <output id="seedOut"></output> · 2,000 posterior draws per type</p>
+        </div>
+        <div>
+          <div class="canvas-wrap"><canvas id="cv" height="420" role="img" aria-label="Posterior draws of theta for each transform type, shown as dots along a 0 to 1 axis, with the chosen default for each lane."></canvas></div>
+          <div class="legend"><span><i style="background:#2b6b75"></i>auto lane</span><span><i style="background:#b07a00"></i>suggest lane</span><span><i style="background:#9b1c1c"></i>drop lane</span><span><i style="background:#141210;border-radius:0;width:2px"></i>posterior mean</span></div>
+          <div class="tablewrap">
+          <table class="typetable" aria-label="Per transform type posterior and default">
+            <thead><tr><th>Transform</th><th>Audit</th><th>Posterior θ (90% CrI)</th><th>Default</th><th>Override</th></tr></thead>
+            <tbody id="rows"></tbody>
+          </table>
+          </div>
+        </div>
+      </div>
+
+      <div class="kpis" id="kpis" aria-live="polite"></div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= MEMO ================= -->
+<section id="memo">
+  <div class="wrap">
+    <p class="kicker">03 · Director memo (rewrites itself from the simulation)</p>
+    <div class="memo">
+      <div class="stamp" id="stamp">…</div>
+      <h2 style="margin-right:150px" id="memoTitle">Memo</h2>
+      <dl>
+        <dt>Decision</dt><dd id="mDecision"></dd>
+        <dt>Evidence</dt><dd id="mEvidence"></dd>
+        <dt>Risks</dt><dd id="mRisks"></dd>
+        <dt>Rollout</dt><dd id="mRollout"></dd>
+        <dt>Next step</dt><dd id="mNext"></dd>
+      </dl>
+      <div class="vp" id="mVP"></div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= MATH ================= -->
+<section id="math">
+  <div class="wrap">
+    <p class="kicker">04 · The math, from my Monte Carlo course</p>
+    <h2>Bayesian updating, one transform at a time</h2>
+    <div class="math" style="margin-top:18px">
+      <article class="card light">
+        <div class="cap">Prior × likelihood</div>
+        <p>Before the audit I believe θ (the chance a column is still sensitive after, say, an aggregate) follows a Beta with mean m and strength s. The audit is Binomial: k of n checked columns were still sensitive.</p>
+        <div class="eq">θ | k ~ Beta(ms + k, (1−m)s + n − k)</div>
+        <p>Beta prior + Binomial data stays Beta. That is the conjugate shortcut.</p>
+      </article>
+      <article class="card light">
+        <div class="cap">Shrinkage</div>
+        <p>The posterior mean is a weighted average of the prior mean and the audit rate:</p>
+        <div class="eq">E[θ|k] = (s·m + n·(k/n)) / (s + n)</div>
+        <p>With 5 audited hash columns the prior still pulls hard. With 200, the audit wins. Drag the audit slider and watch the lanes tighten.</p>
+      </article>
+      <article class="card light">
+        <div class="cap">Decide under uncertainty</div>
+        <p>For each lane I draw 2,000 θ values from the posterior (Beta draws built from two Gamma draws), compute the harm of auto, suggest and drop for every draw, and average. The lowest expected harm becomes the default. The 90% credible interval uses the 5th and 95th percentiles of the draws.</p>
+        <div class="eq">default = argmin<sub>a</sub> (1/N) Σ harm(a, θ<sub>i</sub>)</div>
+      </article>
+    </div>
+  </div>
+</section>
+
+<!-- ================= REAL DATA ================= -->
+<section id="real">
+  <div class="wrap">
+    <p class="kicker">05 · How I'd run it on real data</p>
+    <h2>From audit table to posterior in two cells</h2>
+    <p style="color:var(--muted)">Table and column names are illustrative.</p>
+    <div class="codegrid" style="margin-top:16px">
+      <div>
+        <h3>SQL: audit counts per transform</h3>
+<pre><span class="c">-- one row per steward-checked derived column</span>
+SELECT
+  transform_type,
+  COUNT(*)                                   AS n_audited,
+  SUM(CASE WHEN still_sensitive THEN 1 END)  AS k_sensitive,
+  ROUND(AVG(CAST(still_sensitive AS INT)),3) AS raw_rate
+FROM gov_lab.audit.derived_column_reviews
+WHERE source_tag = 'pii'
+  AND reviewed_at &gt;= current_date() - INTERVAL 30 DAYS
+GROUP BY transform_type
+ORDER BY raw_rate DESC;</pre>
+      </div>
+      <div>
+        <h3>Python: posterior draws + default</h3>
+<pre>import numpy as np
+rng = np.random.default_rng(102)
+m, s, c_leak, c_rev, miss, L = .7, 6, 20, .15, .02, .999
+audit = spark.table("gov_lab.audit.transform_counts").toPandas()
+
+def harm(theta):
+    auto    = L*(1-theta) + (1-L)*theta*c_leak
+    suggest = L*(c_rev + theta*miss*c_leak + (1-theta)*.10) \
+              + (1-L)*theta*c_leak
+    drop    = theta*c_leak
+    return np.vstack([auto, suggest, drop]).mean(axis=1)
+
+for r in audit.itertuples():
+    th = rng.beta(m*s + r.k_sensitive,
+                  (1-m)*s + r.n_audited - r.k_sensitive, 2000)
+    pick = ["auto","suggest","drop"][harm(th).argmin()]
+    print(r.transform_type, pick, np.percentile(th,[5,95]).round(2))</pre>
+      </div>
+    </div>
+  </div>
+</section>
+</main>
+
+<footer>
+  <div class="wrap">
+    <p><b>Unofficial concept prototype by Shriya Shekatkar. All data is simulated. Not affiliated with any company.</b></p>
+    <p><a href="https://shriyashekatkar25-byte.github.io/apm-lab/">← Back to the APM Lab gallery</a></p>
+    <p class="credits">Design inspired by:
+      <a href="https://www.pinterest.com/pin/585186545375909006/" target="_blank" rel="noopener">"the world is yours" pink script card (tarynn4ubrey)</a> ·
+      <a href="https://www.pinterest.com/pin/533817362106180095/" target="_blank" rel="noopener">Stop Waiting. Start Becoming Her! (Mikki James, Bon Bon Vie Beauty and Wellness)</a> ·
+      <a href="https://www.pinterest.com/pin/790944753356020713/" target="_blank" rel="noopener">"I now break all curses…" marker affirmation (tarotreaderpeter)</a> ·
+      <a href="https://www.pinterest.com/pin/82683343155406247/" target="_blank" rel="noopener">Dainty Black Waist Beads w/ dragonfly (Etsy)</a>
+    </p>
+  </div>
+</footer>
+
+<script>
+(function(){
+"use strict";
+const $=id=>document.getElementById(id);
+const reduce=window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+/* ---- seeded RNG (mulberry32) ---- */
+function mulberry32(a){return function(){a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296;}}
+let rng;
+function normal(){let u=0;while(u===0)u=rng();const v=rng();return Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*v);} // Box-Muller
+function gamma(a){ // Marsaglia-Tsang (a rejection sampler)
+  if(a<1){return gamma(a+1)*Math.pow(rng(),1/a);}
+  const d=a-1/3,c=1/Math.sqrt(9*d);
+  for(;;){let x,v;do{x=normal();v=1+c*x;}while(v<=0);v=v*v*v;const u=rng();
+    if(u<1-0.0331*x*x*x*x)return d*v; if(Math.log(u)<0.5*x*x+d*(1-v+Math.log(v)))return d*v;}
+}
+function beta(a,b){const x=gamma(a),y=gamma(b);return x/(x+y);}
+function binom(n,p){let k=0;for(let i=0;i<n;i++)if(rng()<p)k++;return k;}
+
+/* ---- synthetic world ---- */
+const TYPES=[
+  {key:"pass",name:"Select / rename",share:.40,truth:.98},
+  {key:"join",name:"Join",share:.20,truth:.93},
+  {key:"filter",name:"Filter / dedupe",share:.10,truth:.96},
+  {key:"agg",name:"Aggregate",share:.15,truth:.30},
+  {key:"hash",name:"Hash / tokenize",share:.08,truth:.06},
+  {key:"feat",name:"ML feature",share:.07,truth:.55}
+];
+const C_REV=.15, MISS=.02, SFP=.10, D=2000;
+const ACTS=["auto","suggest","drop"];
+const override={};
+let seed=102, state=null;
+
+function harmVec(th,L,cl){
+  return [
+    L*(1-th)+(1-L)*th*cl,
+    L*(C_REV+th*MISS*cl+(1-th)*SFP)+(1-L)*th*cl,
+    th*cl
+  ];
+}
+function quant(sorted,q){const i=(sorted.length-1)*q,lo=Math.floor(i),hi=Math.ceil(i);return sorted[lo]+(sorted[hi]-sorted[lo])*(i-lo);}
+
+function simulate(){
+  const n=+$("n").value,m=+$("pm").value,s=+$("ps").value,cl=+$("cl").value,L=+$("lc").value,V=+$("vol").value;
+  rng=mulberry32(seed);
+  const a0=Math.max(m*s,1e-3)+(s===0?1:0), b0=Math.max((1-m)*s,1e-3)+(s===0?1:0);
+  const lanes=TYPES.map(t=>{
+    const k=binom(n,t.truth);
+    const a=a0+k,b=b0+n-k;
+    const draws=new Float64Array(D);
+    for(let i=0;i<D;i++)draws[i]=beta(a,b);
+    const eh=[0,0,0];
+    for(let i=0;i<D;i++){const h=harmVec(draws[i],L,cl);eh[0]+=h[0];eh[1]+=h[1];eh[2]+=h[2];}
+    eh.forEach((v,j)=>eh[j]=v/D);
+    let best=0;for(let j=1;j<3;j++)if(eh[j]<eh[best])best=j;
+    const sorted=Array.from(draws).sort((x,y)=>x-y);
+    const act=override[t.key]&&override[t.key]!=="bayes"?ACTS.indexOf(override[t.key]):best;
+    return {t,k,a,b,draws,eh,best,act,mean:a/(a+b),lo:quant(sorted,.05),hi:quant(sorted,.95),vol:V*t.share};
+  });
+  // propagate joint uncertainty: per draw i, compute monthly outcomes
+  const leakRate=new Float64Array(D), overRate=new Float64Array(D);
+  let queue=0;
+  lanes.forEach(l=>{if(l.act===1)queue+=l.vol*L/4.33;});
+  for(let i=0;i<D;i++){
+    let sens=0,leak=0,over=0;
+    lanes.forEach(l=>{
+      const th=l.draws[i],v=l.vol; sens+=v*th;
+      if(l.act===0){leak+=v*th*(1-L);over+=v*(1-th)*L;}
+      else if(l.act===1){leak+=v*th*((1-L)+L*MISS);over+=v*(1-th)*L*SFP;}
+      else{leak+=v*th;}
+    });
+    // Binomial count noise around the expectation (normal approx)
+    leak=Math.max(0,leak+Math.sqrt(leak)*normal()); over=Math.max(0,over+Math.sqrt(over)*normal());
+    leakRate[i]=leak/Math.max(sens,1); overRate[i]=over/V;
+  }
+  const lr=Array.from(leakRate).sort((x,y)=>x-y), orr=Array.from(overRate).sort((x,y)=>x-y);
+  const pLeakOk=lr.filter(x=>x<=.005).length/D;
+  const sensTotal=lanes.reduce((s,l)=>s+l.vol*l.mean,0);
+  state={n,m,s,cl,L,V,lanes,leakMed:quant(lr,.5),leakP90:quant(lr,.9),overMed:quant(orr,.5),overP90:quant(orr,.9),queue,pLeakOk,sensTotal,
+    leakCount:quant(lr,.5)*sensTotal};
+  render();
+}
+
+/* ---- UI ---- */
+const fmtPct=(x,d=1)=>(x*100).toFixed(d)+"%";
+const fmtInt=x=>Math.round(x).toLocaleString("en-US");
+function outputs(){
+  $("nOut").textContent=$("n").value; $("pmOut").textContent=(+$("pm").value).toFixed(2);
+  $("psOut").textContent=$("ps").value; $("clOut").textContent=$("cl").value+"×";
+  $("lcOut").textContent=fmtPct(+$("lc").value,1); $("volOut").textContent=fmtInt(+$("vol").value);
+  $("seedOut").textContent=seed;
+}
+function rowsHTML(){
+  return state.lanes.map(l=>{
+    const cur=override[l.t.key]||"bayes";
+    const btn=(v,lab)=>`<button type="button" data-k="${l.t.key}" data-v="${v}" aria-pressed="${cur===v}">${lab}</button>`;
+    return `<tr><td><b>${l.t.name}</b><br><small style="color:var(--muted)">${fmtPct(l.t.share,0)} of volume</small></td>
+      <td>${l.k}/${state.n}</td>
+      <td>${l.mean.toFixed(2)} <small style="color:var(--muted)">(${l.lo.toFixed(2)}–${l.hi.toFixed(2)})</small></td>
+      <td class="pick ${ACTS[l.act]}">${ACTS[l.act]}${l.act!==l.best?' <small>(override)</small>':''}</td>
+      <td><span class="seg" role="group" aria-label="Override ${l.t.name}">${btn("bayes","Bayes")}${btn("auto","A")}${btn("suggest","S")}${btn("drop","D")}</span></td></tr>`;
+  }).join("");
+}
+const STAR=`<svg class="star" viewBox="0 0 40 40" aria-hidden="true"><circle cx="20" cy="20" r="17" fill="#fff" stroke="#141210" stroke-width="2.5"/><circle cx="20" cy="20" r="13" fill="none" stroke="#141210" stroke-width="1.2" stroke-dasharray="3 2"/><path class="core" d="M20 8l3.5 7.6 8.2.8-6.2 5.5 1.8 8.1L20 25.8 12.7 30l1.8-8.1-6.2-5.5 8.2-.8z" stroke="#141210" stroke-width="1.2"/></svg>`;
+function badge(lbl,val,sub,ok){
+  return `<div class="badge ${ok?'pass':'fail'}">${STAR}<div class="lbl">${lbl}</div><div class="val">${val}</div><div class="sub">${sub}</div><span class="state">${ok?'GUARDRAIL MET':'BREACH'}</span></div>`;
+}
+function render(){
+  outputs();
+  const S=state;
+  $("rows").innerHTML=rowsHTML();
+  const okLeak=S.leakMed<=.005, okOver=S.overMed<=.12, okQ=S.queue<=250, okP=S.pLeakOk>=.9;
+  $("kpis").innerHTML=
+    badge("Untagged sensitive",fmtPct(S.leakMed,2),`≈ ${fmtInt(S.leakCount)} cols/month · P90 ${fmtPct(S.leakP90,2)}`,okLeak)+
+    badge("Wrongly masked",fmtPct(S.overMed,1),`≈ ${fmtInt(S.overMed*S.V)} cols/month · P90 ${fmtPct(S.overP90,1)}`,okOver)+
+    badge("Steward queue",fmtInt(S.queue)+"/wk",`reviews from suggest lanes`,okQ)+
+    badge("P(leak guardrail)",fmtPct(S.pLeakOk,0),`share of draws with ≤ 0.5% untagged`,okP);
+  memo(okLeak,okOver,okQ,okP);
+  startAnim();
+}
+
+function memo(okLeak,okOver,okQ,okP){
+  const S=state, by=a=>S.lanes.filter(l=>l.act===a).map(l=>l.t.name.toLowerCase());
+  const au=by(0),su=by(1),dr=by(2);
+  const fails=[!okLeak&&"untagged-sensitive rate",!okOver&&"wrong-mask rate",!okQ&&"steward queue",!okP&&"leak confidence"].filter(Boolean);
+  let verdict,cls;
+  if(fails.length===0){verdict="SHIP";cls="ship";}
+  else if(fails.length===1&&(fails[0]==="steward queue"||fails[0]==="wrong-mask rate")){verdict="SHIP W/ CONDITIONS";cls="cond";}
+  else{verdict="HOLD";cls="hold";}
+  const st=$("stamp");st.textContent=verdict;st.className="stamp "+cls;
+  const list=a=>a.length?a.join(", "):"none";
+  $("memoTitle").textContent= cls==="hold"?"Hold transform-aware propagation for now":"Make propagation transform-aware";
+  $("mDecision").innerHTML=`Default <b>auto</b> for ${list(au)}; <b>suggest</b> for ${list(su)}${dr.length?'; <b>drop</b> for '+list(dr):''}. ${cls==="ship"?"All four guardrails hold.":"Guardrail at risk: "+fails.join(", ")+"."}`;
+  const agg=S.lanes.find(l=>l.t.key==="agg"), hs=S.lanes.find(l=>l.t.key==="hash");
+  $("mEvidence").innerHTML=`Audit of ${S.n} columns per type. Aggregates stay sensitive ${agg.mean.toFixed(2)} of the time (90% CrI ${agg.lo.toFixed(2)}–${agg.hi.toFixed(2)}); hashes ${hs.mean.toFixed(2)} (${hs.lo.toFixed(2)}–${hs.hi.toFixed(2)}). Median untagged-sensitive rate ${fmtPct(S.leakMed,2)}, wrong masks ${fmtPct(S.overMed,1)}, queue ${fmtInt(S.queue)}/week, and ${fmtPct(S.pLeakOk,0)} of posterior worlds keep leaks ≤ 0.5%.`;
+  const risks=[];
+  if(S.L<.998)risks.push(`lineage capture at ${fmtPct(S.L,1)} on classic compute is the biggest leak driver; no lineage means no tag in any lane`);
+  if(su.length)risks.push(`stewards wrongly clear about ${MISS*100}% of truly sensitive pending tags, and ABAC policies don't apply until the tag lands`);
+  if(S.n<20)risks.push(`with only ${S.n} audited columns per type, the prior is doing much of the work`);
+  if(!okOver)risks.push(`over-masking (${fmtPct(S.overMed,1)}) will show up as analyst tickets and workarounds like copying data out`);
+  if(dr.length)risks.push(`dropping tags on ${list(dr)} relies on the transform truly removing identity; audit quarterly`);
+  if(!risks.length)risks.push("the audit sample is synthetic here; a real audit could move aggregates either way");
+  $("mRisks").textContent=risks.join("; ")+".";
+  $("mRollout").innerHTML=`Beta behind the existing per-tag propagation toggle → 10 design-partner metastores for 4 weeks with suggest lanes shadow-logged → compare untagged-sensitive rate against a holdout of today's copy-everything behavior → GA default once P(leak guardrail) ≥ 90% on real audits.`;
+  $("mNext").innerHTML= cls==="hold"
+    ? `Raise lineage capture or expand the audit to 100+ columns per lane before deciding; re-run this model weekly.`
+    : !okQ ? `Size the steward queue: batch suggestions per table, or send only the top-risk suggest lane to humans first.`
+    : `Run a 2-week steward audit on 3 design partners (target 100 columns per lane) and wire the leak guardrail into a weekly dashboard.`;
+  $("mVP").textContent= cls==="hold"
+    ? `"Not yet: in ${fmtPct(1-S.pLeakOk,0)} of plausible worlds we'd leave more than 0.5% of sensitive columns untagged, so we fix lineage coverage first."`
+    : `"Tags should follow raw and joined data automatically and ask a human only for ${list(su.concat(dr))}; that keeps leaks at ${fmtPct(S.leakMed,2)} while cutting wrong masks to ${fmtPct(S.overMed,1)}."`;
+}
+
+/* ---- canvas: posterior draws falling into lanes ---- */
+const cv=$("cv"),ctx=cv.getContext("2d");
+let raf=null,frame=0;
+const COL={0:"#2b6b75",1:"#b07a00",2:"#9b1c1c"};
+function sizeCanvas(){
+  const w=cv.clientWidth||600,dpr=window.devicePixelRatio||1;
+  const h=Math.max(360,Math.min(440,w*0.75));
+  cv.style.height=h+"px"; cv.width=w*dpr; cv.height=h*dpr; ctx.setTransform(dpr,0,0,dpr,0,0);
+  return {w,h};
+}
+function draw(progress){
+  const {w,h}=sizeCanvas();
+  ctx.clearRect(0,0,w,h);
+  const padL=Math.min(118,w*.3),padR=14,top=18,bot=30;
+  const laneH=(h-top-bot)/TYPES.length;
+  const X=v=>padL+v*(w-padL-padR);
+  // wing-vein grid
+  ctx.strokeStyle="rgba(43,107,117,.13)";ctx.lineWidth=1;
+  for(let g=0;g<=10;g++){ctx.beginPath();ctx.moveTo(X(g/10),top);ctx.lineTo(X(g/10),h-bot);ctx.stroke();}
+  ctx.font="600 11px Inter, sans-serif";ctx.fillStyle="#5b524c";ctx.textAlign="center";
+  for(let g=0;g<=10;g+=2)ctx.fillText((g/10).toFixed(1),X(g/10),h-10);
+  ctx.textAlign="left";
+  state.lanes.forEach((l,li)=>{
+    const y0=top+li*laneH, yc=y0+laneH/2;
+    // wing-shaped lane background
+    ctx.fillStyle=li%2?"rgba(239,230,200,.45)":"rgba(239,230,200,.25)";
+    ctx.beginPath();ctx.ellipse((X(0)+X(1))/2,yc,(X(1)-X(0))/2,laneH*.46,0,0,Math.PI*2);ctx.fill();
+    ctx.strokeStyle="rgba(20,18,16,.12)";ctx.stroke();
+    ctx.fillStyle="#141210";ctx.font=(w<420?"700 9px":"700 11px")+" Inter, sans-serif";
+    ctx.fillText(l.t.name.toUpperCase(),6,yc-2);
+    ctx.fillStyle=COL[l.act];ctx.font="600 11px Inter, sans-serif";
+    ctx.fillText("→ "+ACTS[l.act],6,yc+13);
+    const nShow=Math.floor(Math.min(1,progress)*600);
+    ctx.fillStyle=COL[l.act]+"88";
+    for(let i=0;i<nShow;i++){
+      const th=l.draws[i];
+      const jit=((i*9301+49297)%233280)/233280-.5; // deterministic jitter
+      ctx.beginPath();ctx.arc(X(th),yc+jit*laneH*.62,1.8,0,Math.PI*2);ctx.fill();
+    }
+    // posterior mean + CrI
+    ctx.strokeStyle="#141210";ctx.lineWidth=2;
+    ctx.beginPath();ctx.moveTo(X(l.mean),y0+laneH*.15);ctx.lineTo(X(l.mean),y0+laneH*.85);ctx.stroke();
+    ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(X(l.lo),yc+laneH*.38);ctx.lineTo(X(l.hi),yc+laneH*.38);ctx.stroke();
+  });
+  // a small original dragonfly gliding across while sampling
+  if(progress<1){
+    const fx=X(Math.min(1,progress)),fy=top+8+Math.sin(progress*12)*6;
+    dragonfly(fx,fy+4,.55);
+  }
+}
+function dragonfly(x,y,s){
+  ctx.save();ctx.translate(x,y);ctx.scale(s,s);
+  ctx.fillStyle="rgba(239,230,200,.85)";ctx.strokeStyle="rgba(20,18,16,.45)";ctx.lineWidth=1;
+  [[-1,-1],[1,-1],[-1,1],[1,1]].forEach(([sx,sy])=>{ctx.beginPath();ctx.ellipse(sx*16,sy*3-2,16,4.5,sy*.12*sx,0,Math.PI*2);ctx.fill();ctx.stroke();});
+  ctx.fillStyle="#7f8a2e";ctx.beginPath();ctx.ellipse(0,-2,4,5,0,0,Math.PI*2);ctx.fill();
+  ctx.fillStyle="#2f6fa8";ctx.fillRect(-1.6,2,3.2,26);
+  ctx.restore();
+}
+function startAnim(){
+  if(raf)cancelAnimationFrame(raf);
+  if(reduce){draw(1);return;}
+  frame=0;
+  const step=()=>{frame++;const p=frame/70;draw(p);if(p<1.02)raf=requestAnimationFrame(step);else draw(1.5);};
+  raf=requestAnimationFrame(step);
+}
+window.addEventListener("resize",()=>{if(state)draw(1.5);});
+
+/* ---- wiring ---- */
+["n","pm","ps","cl","lc","vol"].forEach(id=>$(id).addEventListener("input",()=>{outputs();clearTimeout(window.__t);window.__t=setTimeout(simulate,80);}));
+$("rerun").addEventListener("click",()=>{seed=(seed*48271+7)%99991;simulate();});
+$("reset").addEventListener("click",()=>{seed=102;Object.keys(override).forEach(k=>delete override[k]);
+  const d={n:40,pm:.7,ps:6,cl:20,lc:.999,vol:12000};Object.entries(d).forEach(([k,v])=>$(k).value=v);simulate();});
+$("rows").addEventListener("click",e=>{const b=e.target.closest("button[data-k]");if(!b)return;override[b.dataset.k]=b.dataset.v;simulate();});
+simulate();
+window.__tagAlong=()=>state;
+})();
+</script>
+</body>
+</html>
